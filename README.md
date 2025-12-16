@@ -9,5 +9,5 @@ The crawled page is saved to a file into a current directory.
 Usage Example
 
 ```
-CRAWL_URL=https://web-scraping.dev/products cargo run
+CRAWL_URLS=https://web-scraping.dev/products,https://web-scraping.dev/testimonials cargo run
 ```

@@ -44,6 +44,7 @@ async fn wait_for_dom_quiet(
 }
 
 pub async fn crawl_page(url: &str) -> Result<String> {
+    info!("Crawling the URL {url}...");
     // Launch browser (headless mode)
     let mut caps = DesiredCapabilities::chrome();
     caps.add_arg("--headless=new")?;
@@ -60,15 +61,14 @@ pub async fn crawl_page(url: &str) -> Result<String> {
     wait_for_dom_quiet(&driver, Duration::from_secs(20), Duration::from_secs(2)).await?;
 
     // Scrolling until we get a new content
-    let scroll_paging = scroll_until_stable(&driver, Duration::from_secs(45), 3).await?;
-    info!("Scroll paging detected: {scroll_paging}");
+    scroll_until_stable(&driver, Duration::from_secs(45), 3).await?;
 
     // Trying to scroll with pressing a Load more... button
-    let button_paging = try_click_load_more(&driver).await?;
-    info!("Button paging detected: {button_paging}");
+    try_click_load_more(&driver).await?;
 
     let html = driver.source().await?;
 
     driver.quit().await?;
+    info!("The URL {url} crawled successfully.");
     Ok(html)
 }

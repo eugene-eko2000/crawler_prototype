@@ -4,6 +4,6 @@ use clap::Parser;
 #[derive(Debug, Parser)]
 pub struct Cli {
     /// Root directory for crawler output.
-    #[arg(env = "CRAWL_URL")]
-    pub crawl_url: String,
+    #[arg(long, env = "CRAWL_URLS", value_delimiter = ',')]
+    pub crawl_urls: Vec<String>,
 }

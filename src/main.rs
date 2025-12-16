@@ -4,11 +4,12 @@ use std::{
     time::Duration,
 };
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrome_driver_rs::ensure_latest_driver;
 use clap::Parser;
 use thirtyfour::{error::WebDriverErrorInfo, prelude::*};
-use tokio::time::sleep;
+use tokio::{task::JoinSet, time::sleep};
+use tracing::error;
 use tracing_subscriber::EnvFilter;
 
 use crate::{crawl::crawl_page, url_decorate::url_to_filename};
@@ -47,10 +48,30 @@ async fn main() -> Result<()> {
 
     sleep(Duration::from_secs(3)).await;
 
-    let html = crawl_page(&cli.crawl_url).await?;
+    let mut js = JoinSet::<(String, Result<()>)>::new();
 
-    // Save result
-    fs::write(url_to_filename(&cli.crawl_url), html)?;
+    for crawl_url in cli.crawl_urls {
+        js.spawn(async move {
+            let html = crawl_page(&crawl_url).await;
+            if let Err(err) = html {
+                return (crawl_url, Err(err));
+            }
+            let html = html.unwrap();
 
+            // Save result
+            if let Err(err) = fs::write(url_to_filename(&crawl_url), &html) {
+                return (crawl_url, Err(anyhow!(err)));
+            }
+
+            (crawl_url, Ok(()))
+        });
+    }
+
+    let results = js.join_all().await;
+    for res in results {
+        if let Err(err) = res.1 {
+            error!("Crawler failed for URL {}: {err}", res.0);
+        }
+    }
     Ok(())
 }
