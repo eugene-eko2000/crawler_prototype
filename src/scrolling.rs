@@ -148,7 +148,7 @@ pub async fn scroll_until_stable(
 
 /// Attempt to find and click a "load more"-like control.
 /// Returns true if clicking caused the page to "progress" (new data loaded).
-pub async fn try_click_load_more(driver: &WebDriver) -> Result<bool> {
+pub async fn try_click_load_more(driver: &WebDriver, max_time: Duration) -> Result<bool> {
     // Broad selector for clickable-ish elements
     let candidates = driver.find_all(By::Css(
         r#"button, a[href], [role="button"], input[type="button"], input[type="submit"], [onclick]"#,
@@ -191,6 +191,7 @@ pub async fn try_click_load_more(driver: &WebDriver) -> Result<bool> {
     scored.sort_by(|a, b| b.0.cmp(&a.0));
 
     // Try top few candidates
+    let start_time = Instant::now();
     for (_, el, _) in scored.into_iter().take(5) {
         // Bring into view
         let _ = el.scroll_into_view().await;
@@ -199,7 +200,14 @@ pub async fn try_click_load_more(driver: &WebDriver) -> Result<bool> {
             continue;
         }
 
-        while do_click(driver, &el).await? {}
+        loop {
+            if start_time.elapsed() > max_time {
+                break;
+            }
+            if !do_click(driver, &el).await? {
+                break;
+            }
+        }
         return Ok(true);
     }
 

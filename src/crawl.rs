@@ -48,6 +48,11 @@ pub async fn crawl_page(url: &str) -> Result<String> {
     // Launch browser (headless mode)
     let mut caps = DesiredCapabilities::chrome();
     caps.add_arg("--headless=new")?;
+    caps.add_arg(
+        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
+        AppleWebKit/537.36 (KHTML, like Gecko) \
+        Chrome/120.0.0.0 Safari/537.36",
+    )?;
     caps.add_arg("--no-sandbox")?;
     caps.add_arg("--disable-gpu")?;
     caps.add_arg("--window-size=1280,900")?;
@@ -64,7 +69,7 @@ pub async fn crawl_page(url: &str) -> Result<String> {
     scroll_until_stable(&driver, Duration::from_secs(45), 3).await?;
 
     // Trying to scroll with pressing a Load more... button
-    try_click_load_more(&driver).await?;
+    try_click_load_more(&driver, Duration::from_secs(45)).await?;
 
     let html = driver.source().await?;
 
